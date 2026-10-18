@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "patika-dergi-bulten",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-09-19",
+  "vars": {
+    "PUBLIC_URL": "https://bulten.patikadergi.org",
+    "FROM_EMAIL": "Patika Dergi <bulten@patikadergi.org>"
+  },
+  "triggers": {"crons": ["*/15 * * * *"]},
+  "d1_databases": [
+    {"binding": "DB", "database_name": "patika-dergi-bulten", "database_id": "D1_DATABASE_ID_BURAYA"}
+  ]
+}
