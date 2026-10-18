@@ -1,0 +1,52 @@
+name: Patika Dergi - Cloudflare Yayini
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: patika-dergi-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Canli siteyi yayinla
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Yayin yetkisini kontrol et
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN repository secret eksik."
+            exit 1
+          fi
+
+      - name: Site dosyalarini hazirla
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .deploy
+          cp -- *.html *.xml robots.txt .deploy/
+          cp -R -- assets yazilar .deploy/
+          test -s .deploy/index.html
+          test -s .deploy/assets/css/style.css
+          test -s .deploy/assets/js/main.js
+
+      - name: Cloudflare Pages'e yayinla
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 91abaf8b3bf910c00d4b1e29047d76d5
+          workingDirectory: .deploy
+          command: pages deploy . --project-name=patika-dergi --branch=main --commit-hash=${{ github.sha }}
