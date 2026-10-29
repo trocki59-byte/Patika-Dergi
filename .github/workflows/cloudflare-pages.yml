@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           mkdir -p .deploy
           cp -- *.html *.xml robots.txt .deploy/
-          cp -R -- assets yazilar .deploy/
+          cp -R -- assets yazilar mimari .deploy/
           test -s .deploy/index.html
           test -s .deploy/assets/css/style.css
           test -s .deploy/assets/js/main.js
