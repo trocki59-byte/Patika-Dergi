@@ -1,0 +1,62 @@
+name: Publish Kars guide without changing its source
+on:
+  push:
+    branches: [publish-kars-gezi-20261031]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging materials
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reassemble and verify original HTML and its photograph
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, base64, re
+          parts = [Path("staging/kars-chunks/%02d.part" % i).read_bytes() for i in range(18)]
+          data = b"".join(parts)
+          assert len(data) == 10352327, "Unexpected original file length"
+          assert hashlib.sha256(data).hexdigest() == "99af597cdeffa966b5eb7be2104f7de54844614d4a357ccc060f5bdd63a1d5b0", "Original HTML checksum mismatch"
+          Path("/tmp/kars-original.html").write_bytes(data)
+          photo = re.search(rb'var _t="data:image/webp;base64,([A-Za-z0-9+/=]+)"', data)
+          assert photo, "Original Ani photograph missing"
+          Path("/tmp/kars-cover.webp").write_bytes(base64.b64decode(photo.group(1)))
+          PY
+      - name: Checkout website main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+          fetch-depth: 0
+      - name: Add unchanged HTML and link it from Gezi
+        shell: bash
+        run: |
+          git -C site pull --ff-only origin main
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          root = Path("site")
+          shutil.copyfile("/tmp/kars-original.html", root / "yazilar" / "Kars-Gezi-Rehberi-Bozk.html")
+          shutil.copyfile("/tmp/kars-cover.webp", root / "assets" / "images" / "kars-ani.webp")
+          page = root / "gezi.html"
+          html = page.read_text(encoding="utf-8")
+          marker = '<div class="two-card-grid">'
+          new_card = '<a class="article-card" href="yazilar/Kars-Gezi-Rehberi-Bozk.html" data-reveal><img loading="lazy" src="assets/images/kars-ani.webp" alt="Ani Harabeleri, Karsın karlı bozkırı"><div class="card-body"><div class="card-meta"><span>Gezi Rehberi · Kars</span><span>Yeni</span></div><h3>Kars — Bozkırın, Buzun ve Bin Yılın Şehri</h3><p>Ani Harabeleri, Çıldır Gölü, Sarıkamış ve Karsın tarih, doğa ve kültür rotalarını görsellerle keşfedin.</p><span class="eyebrow">Görselli rehberi keşfet →</span></div></a>'
+          if 'href="yazilar/Kars-Gezi-Rehberi-Bozk.html"' not in html:
+              assert marker in html, "Gezi card grid missing"
+              html = html.replace(marker, marker + new_card, 1)
+              page.write_text(html, encoding="utf-8")
+          PY
+          git -C site config user.name "patikadergi-publisher[bot]"
+          git -C site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C site add gezi.html yazilar/Kars-Gezi-Rehberi-Bozk.html assets/images/kars-ani.webp
+          if git -C site diff --cached --quiet; then
+            echo "Already published"; exit 0
+          fi
+          git -C site commit -m "Gezi: Kars rehberini özgün HTML dosyasıyla yayınla"
+          git -C site push origin HEAD:main
