@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pages = [
+  'yazilar/isvicre-alplerin-golgesinde.html',
   'mimari/dere-kenari-kutuk-ev.html',
   '', 'doga.html', 'gezi.html', 'sanat.html', 'felsefe.html', 'mimari.html',
   'mimari/cotswold-tas-evi.html', 'mimari/wisteria-evi-oda-oda.html', 'hakkimizda.html', 'iletisim.html', 'gizlilik.html',
